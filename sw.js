@@ -1,6 +1,6 @@
 /* Altimètre — service worker
    Coquille applicative en cache, données live toujours réseau. */
-const VERSION = "altimetre-v1";
+const VERSION = "altimetre-v2";
 const SHELL = [
   "./",
   "./index.html",
