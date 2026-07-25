@@ -37,7 +37,9 @@
     --body:'Inter',system-ui,sans-serif;
     --tabbar:calc(74px + env(safe-area-inset-bottom)); /* remplacé par la hauteur réelle mesurée en JS */
   }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  /* touch-action:manipulation coupe le zoom au double-tap (et le délai de 300 ms)
+     tout en laissant le scroll et le zoom à deux doigts */
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   html{
     height:100%;
     color-scheme:dark;                 /* barres système + rebond de scroll en sombre */
@@ -115,6 +117,12 @@
   .cell .v{margin-top:5px;font-size:17px;font-weight:500;line-height:1.25;word-break:break-word}
   .cell .v .u{font-size:13px;color:var(--muted);font-weight:400}
   .cell .s{margin-top:4px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);line-height:1.5}
+  /* ville et coordonnées dans une même section */
+  .loc-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 16px;flex-wrap:wrap}
+  .loc-city{min-width:0;flex:1 1 auto}
+  .loc-city .v{font-size:19px;font-weight:500}
+  .loc-coords{flex:0 0 auto;text-align:right}
+  .loc-coords .v{font-family:var(--mono);font-size:13px;line-height:1.6;letter-spacing:.01em}
 
   /* ---------- SUN ---------- */
   .sun-card{margin-top:12px;padding:15px 12px;display:grid;grid-template-columns:auto minmax(44px,1fr) auto;align-items:center;gap:8px}
@@ -150,13 +158,11 @@
   .btn.ghost{background:none;border:1px solid var(--line-strong);color:var(--text)}
   .btn.ghost:hover{box-shadow:none;border-color:var(--mint)}
   .note{font-size:12.5px;color:var(--muted);line-height:1.7;padding:14px}
-  .track{padding:14px}
-  .track svg{width:100%;aspect-ratio:1;display:block;overflow:visible;border-radius:12px;background:rgba(0,0,0,.18)}
 
   /* ---------- TABBAR ---------- */
   .tabbar{
     position:fixed;left:0;right:0;bottom:0;z-index:4;
-    display:grid;grid-template-columns:repeat(4,1fr);
+    display:grid;grid-template-columns:repeat(3,1fr);
     background:rgba(6,15,14,.92);backdrop-filter:blur(14px);
     border-top:1px solid var(--line);
     padding:10px 6px calc(8px + env(safe-area-inset-bottom));
@@ -257,21 +263,20 @@
     </section>
 
     <div class="grid">
-      <div class="card cell">
-        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg></div>
-        <div class="body">
-          <div class="k">Position</div>
-          <div class="v" id="moveState">En attente</div>
-          <div class="s" id="lastUpdate">Dernière maj. : ––:––:––</div>
-        </div>
-      </div>
-
-      <div class="card cell">
+      <div class="card cell wide">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 22s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="11" r="2.6"/></svg></div>
         <div class="body">
-          <div class="k">Coordonnées</div>
-          <div class="v" id="coords">––<br>––</div>
-          <div class="s">WGS84</div>
+          <div class="k">Position</div>
+          <div class="loc-row">
+            <div class="loc-city">
+              <div class="v" id="place">Localisation…</div>
+              <div class="s"><span id="moveState">En attente</span> · <span id="lastUpdate">––:––:––</span></div>
+            </div>
+            <div class="loc-coords">
+              <div class="v" id="coords">––<br>––</div>
+              <div class="s">WGS84</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -341,22 +346,6 @@
     </section>
   </section>
 
-  <!-- ======================= CARTE ======================= -->
-  <section class="view" id="view-carte">
-    <div class="panel-title">Trace de la session</div>
-    <div class="card track">
-      <svg viewBox="0 0 100 100" id="trackSvg" role="img" aria-label="Trace GPS"></svg>
-    </div>
-    <div class="card rows" id="trackRows">
-      <div class="row"><span class="k">Points enregistrés</span><span class="v" id="trkPoints">0</span></div>
-      <div class="row"><span class="k">Distance parcourue</span><span class="v" id="trkDist">0 m</span></div>
-      <div class="row"><span class="k">Étendue de la trace</span><span class="v" id="trkSpan">–</span></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <p class="note">La trace est tracée localement à partir des points GPS de la session. Rien n'est envoyé sur un serveur.</p>
-    </div>
-  </section>
-
   <!-- ======================= HISTORIQUE ======================= -->
   <section class="view" id="view-historique">
     <div class="panel-title">Profil altimétrique</div>
@@ -365,6 +354,7 @@
     </div>
     <div class="card rows">
       <div class="row"><span class="k">Durée de session</span><span class="v" id="hDur">00:00</span></div>
+      <div class="row"><span class="k">Distance parcourue</span><span class="v" id="hDist">0 m</span></div>
       <div class="row"><span class="k">Altitude min</span><span class="v" id="hMin">––</span></div>
       <div class="row"><span class="k">Altitude max</span><span class="v" id="hMax">––</span></div>
       <div class="row"><span class="k">Dénivelé positif</span><span class="v" id="hGain">+0 m</span></div>
@@ -409,10 +399,6 @@
   <button class="tab" role="tab" aria-selected="true" data-view="accueil">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="m8 4 4.5 9 3.5-3.5L22 20H2z"/></svg>
     <span>Accueil</span>
-  </button>
-  <button class="tab" role="tab" aria-selected="false" data-view="carte">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3z"/><path d="M9 3v15M15 6v15"/></svg>
-    <span>Carte</span>
   </button>
   <button class="tab" role="tab" aria-selected="false" data-view="historique">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>
@@ -607,7 +593,7 @@
     $("moveState").textContent = S.lat == null ? "En attente" : S.moving ? "En mouvement" : "Immobile";
     if(S.lastFix){
       const d = new Date(S.lastFix);
-      $("lastUpdate").textContent = `Dernière maj. : ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      $("lastUpdate").textContent = `maj. ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
     if(S.acc != null){
       $("acc").innerHTML = `${uLen(S.acc).toFixed(1)} <span class="u">${uSym()}</span>`;
@@ -709,7 +695,7 @@
       S.prevGround = el;
       S.samples.push({t:Date.now(), alt:el});
       $("setSource").textContent = "Modèle terrain";
-      render(); drawHist(); drawTrack();
+      render(); drawHist();
     }catch(e){ /* garde la dernière valeur connue */ }
   }
 
@@ -733,9 +719,13 @@
     try{
       const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=fr`);
       const j = await r.json();
-      const name = [j.locality || j.city, j.principalSubdivision].filter(Boolean).join(", ");
-      if(name) $("lastUpdate").title = name;
-    }catch(e){}
+      // on veut la ville ; à défaut la commune, la région, puis le pays
+      const name = j.city || j.locality || j.principalSubdivision || j.countryName;
+      $("place").textContent = name || "Lieu inconnu";
+      $("place").title = [j.locality || j.city, j.principalSubdivision, j.countryName].filter(Boolean).join(", ");
+    }catch(e){
+      $("place").textContent = "Nom de lieu indisponible";
+    }
   }
 
   /* ---------- historique chart ---------- */
@@ -743,6 +733,8 @@
     const svg = $("histSvg"), n = S.samples.length;
     const dur = Math.floor((Date.now() - S.t0) / 1000);
     $("hDur").textContent = `${pad(Math.floor(dur/3600))}:${pad(Math.floor(dur/60)%60)}`;
+    const dist = trackDistance();
+    $("hDist").textContent = dist >= 1000 ? (dist/1000).toFixed(2) + " km" : Math.round(dist) + " m";
     $("hMin").textContent = isFinite(S.min) ? fLen(S.min) : "––";
     $("hMax").textContent = isFinite(S.max) ? fLen(S.max) : "––";
     $("hGain").textContent = "+" + fLen(S.gain);
@@ -774,46 +766,12 @@
     svg.innerHTML = g;
   }
 
-  /* ---------- carte / trace ---------- */
-  function drawTrack(){
-    const svg = $("trackSvg"), t = S.track, n = t.length;
-    $("trkPoints").textContent = n;
-    let dist = 0;
-    for(let i = 1; i < n; i++) dist += haversine(t[i-1].lat, t[i-1].lng, t[i].lat, t[i].lng);
-    $("trkDist").textContent = dist >= 1000 ? (dist/1000).toFixed(2) + " km" : Math.round(dist) + " m";
-
-    if(n < 1){
-      svg.innerHTML = `<text x="50" y="50" text-anchor="middle" class="axis" font-size="4">AUCUN POINT ENREGISTRÉ</text>`;
-      $("trkSpan").textContent = "–";
-      return;
-    }
-    const lats = t.map(p => p.lat), lngs = t.map(p => p.lng);
-    const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const k = Math.cos(midLat * Math.PI / 180);
-    const xs = lngs.map(v => v * k), ys = lats;
-    const x0 = Math.min(...xs), x1 = Math.max(...xs), yA = Math.min(...ys), yB = Math.max(...ys);
-    const spanX = Math.max(x1 - x0, 1e-5), spanY = Math.max(yB - yA, 1e-5);
-    const span = Math.max(spanX, spanY) * 1.35;
-    const cx = (x0 + x1) / 2, cy = (yA + yB) / 2;
-    const PX = v => 50 + (v - cx) / span * 100;
-    const PY = v => 50 - (v - cy) / span * 100;
-
-    let g = "";
-    for(let i = 1; i < 4; i++){
-      g += `<line x1="0" y1="${i*25}" x2="100" y2="${i*25}" stroke="var(--line)" stroke-width=".4"/>`;
-      g += `<line x1="${i*25}" y1="0" x2="${i*25}" y2="100" stroke="var(--line)" stroke-width=".4"/>`;
-    }
-    if(n > 1){
-      const pts = t.map((p, i) => `${PX(xs[i]).toFixed(2)},${PY(ys[i]).toFixed(2)}`).join(" ");
-      g += `<polyline points="${pts}" fill="none" stroke="var(--mint)" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>`;
-      g += `<circle cx="${PX(xs[0]).toFixed(2)}" cy="${PY(ys[0]).toFixed(2)}" r="1.8" fill="none" stroke="var(--mint)" stroke-width=".8"/>`;
-    }
-    const li = n - 1;
-    g += `<circle cx="${PX(xs[li]).toFixed(2)}" cy="${PY(ys[li]).toFixed(2)}" r="2.6" fill="var(--amber)"/>`;
-    const metres = span * 111320;
-    g += `<text x="4" y="96" class="axis" font-size="3.4">≈ ${metres >= 1000 ? (metres/1000).toFixed(1) + " km" : Math.round(metres) + " m"} de côté</text>`;
-    svg.innerHTML = g;
-    $("trkSpan").textContent = metres >= 1000 ? (metres/1000).toFixed(2) + " km" : Math.round(metres) + " m";
+  /* ---------- distance parcourue (cumul des points GPS de la session) ---------- */
+  function trackDistance(){
+    const t = S.track;
+    let d = 0;
+    for(let i = 1; i < t.length; i++) d += haversine(t[i-1].lat, t[i-1].lng, t[i].lat, t[i].lng);
+    return d;
   }
 
   /* ---------- tabs ---------- */
@@ -823,7 +781,6 @@
       document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id === "view-" + btn.dataset.view));
       window.scrollTo({top:0, behavior:"smooth"});
       if(btn.dataset.view === "historique") drawHist();
-      if(btn.dataset.view === "carte") drawTrack();
     });
   });
 
@@ -843,7 +800,7 @@
   $("resetBtn").addEventListener("click", () => {
     Object.assign(S, {min:Infinity, max:-Infinity, gain:0, loss:0, prevGround:null,
       speedSum:0, speedN:0, track:[], samples:[], t0:Date.now()});
-    render(); drawHist(); drawTrack();
+    render(); drawHist();
   });
   $("recalBtn").addEventListener("click", start);
 
@@ -876,7 +833,7 @@
   })();
 
   setInterval(() => { placeSun(); if($("view-historique").classList.contains("on")) drawHist(); }, 30000);
-  render(); drawHist(); drawTrack();
+  render(); drawHist();
 
   /* ---------- PWA ---------- */
   if("serviceWorker" in navigator){
