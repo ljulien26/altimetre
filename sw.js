@@ -1,6 +1,6 @@
 /* Altimètre — service worker
    Coquille applicative en cache, données live toujours réseau. */
-const VERSION = "altimetre-v4";
+const VERSION = "altimetre-v5";
 const SHELL = [
   "./",
   "./index.html",
@@ -13,7 +13,9 @@ const SHELL = [
 self.addEventListener("install", e => {
   e.waitUntil(
     caches.open(VERSION)
-      .then(c => c.addAll(SHELL))
+      // {cache:"reload"} : sans ça, le précache peut être rempli depuis le cache HTTP
+      // du navigateur (GitHub Pages envoie max-age=600) et réinstaller les vieux fichiers.
+      .then(c => c.addAll(SHELL.map(u => new Request(u, {cache:"reload"}))))
       .then(() => self.skipWaiting())
   );
 });
@@ -35,9 +37,11 @@ self.addEventListener("fetch", e => {
   if(/open-meteo\.com|bigdatacloud\.net/.test(url.hostname)) return;
 
   // Navigation : réseau d'abord (pour récupérer les mises à jour), coquille en secours.
+  // On court-circuite le cache HTTP, sinon un rechargement dans les 10 minutes qui
+  // suivent un déploiement peut resservir l'ancienne page.
   if(req.mode === "navigate"){
     e.respondWith(
-      fetch(req)
+      fetch(new Request(req.url, {cache:"reload", credentials:"same-origin"}))
         .then(res => {
           const copy = res.clone();
           caches.open(VERSION).then(c => c.put("./index.html", copy));

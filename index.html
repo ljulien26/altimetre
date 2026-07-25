@@ -382,6 +382,7 @@
       <div class="row"><span class="k">Source d'altitude</span><span class="v" id="setSource">Modèle terrain</span></div>
       <div class="row"><span class="k">Boussole</span><span class="v" id="setCompass">Non activée</span></div>
       <div class="row"><span class="k">Mode hors-ligne</span><span class="v" id="setSW">Non actif</span></div>
+      <div class="row"><span class="k">Version</span><span class="v" id="setVersion">—</span></div>
     </div>
     <div class="card rows" style="margin-top:12px">
       <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;padding:16px 0">
@@ -836,11 +837,26 @@
   render(); drawHist();
 
   /* ---------- PWA ---------- */
+  const APP_VERSION = "v5 · 25/07";
+  $("setVersion").textContent = APP_VERSION;
+
   if("serviceWorker" in navigator){
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("./sw.js")
-        .then(() => { $("setSW").textContent = window.matchMedia("(display-mode: standalone)").matches ? "Actif — app installée" : "Actif"; })
+        .then(reg => {
+          $("setSW").textContent = matchMedia("(display-mode: standalone)").matches ? "Actif — app installée" : "Actif";
+          reg.update();                       // cherche une nouvelle version à chaque ouverture
+        })
         .catch(() => { $("setSW").textContent = "Indisponible"; });
+
+      // Quand une nouvelle version prend la main, on recharge une fois pour l'afficher
+      // tout de suite au lieu d'attendre le lancement suivant.
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if(reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
     });
   }
 })();
